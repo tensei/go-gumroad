@@ -199,7 +199,7 @@ var testCases = map[string]struct {
 			Success: false,
 			Message: "some error",
 		},
-		eeer: "license: invalid license: some error",
+		eeer: "license: invalid: some error",
 	},
 	"refunded": {
 		product: "product", key: "key",

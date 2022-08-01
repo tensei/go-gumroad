@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+var (
+	ErrorLicense = errors.New("license")
+)
+
 // Product represents a product in Gumroad on which license keys can be verified.
 type Product struct {
 	API     string
@@ -77,34 +81,34 @@ func (gp Product) VerifyWithContext(ctx context.Context, key string) error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := gp.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("license: failed check license: %w", err)
+		return fmt.Errorf("license: failed check: %w", err)
 	}
 
 	bts, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("license: failed check license: %w", err)
+		return fmt.Errorf("license: failed check: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var gumroad GumroadResponse
 	if err := json.Unmarshal(bts, &gumroad); err != nil {
-		return fmt.Errorf("license: failed check license: %w", err)
+		return fmt.Errorf("license: failed check: %w", err)
 	}
 
 	if !gumroad.Success {
-		return fmt.Errorf("license: invalid license: %s", gumroad.Message)
+		return fmt.Errorf("%w: invalid: %s", ErrorLicense, gumroad.Message)
 	}
 
 	if gumroad.Purchase.Refunded {
-		return fmt.Errorf("license: license was refunded and is now invalid")
+		return fmt.Errorf("%w: license was refunded and is now invalid", ErrorLicense)
 	}
 
 	if !gumroad.Purchase.SubscriptionCancelledAt.IsZero() {
-		return fmt.Errorf("license: subscription was canceled, license is now invalid")
+		return fmt.Errorf("%w: subscription was canceled, license is now invalid", ErrorLicense)
 	}
 
 	if !gumroad.Purchase.SubscriptionFailedAt.IsZero() {
-		return fmt.Errorf("license: failed to renew subscription, please check at https://gumroad.com/subscriptions/%s/manage", gumroad.Purchase.SubscriptionID)
+		return fmt.Errorf("%w: failed to renew subscription, please check at https://gumroad.com/subscriptions/%s/manage", ErrorLicense, gumroad.Purchase.SubscriptionID)
 	}
 
 	return nil
